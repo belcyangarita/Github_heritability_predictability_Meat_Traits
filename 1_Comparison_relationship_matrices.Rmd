@@ -1,0 +1,158 @@
+---
+title: "Comparison relationship matrices"
+author: "Belcy Karine Angarita Barajas"
+output: html_document
+---
+
+This code comapares three different relationship matrices were calculated, the genomic relationship matrix $\mathbf{G_{ibs}}$ computed as $VanRaden\ (2008)$, the genomic relationship matrix $\mathbf{G_{ibd}}$ computed as $Han\ and\ Abney\ (2011)$ and the additive relationship matrix $\mathbf{A}$.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+rm(list=ls())
+setwd("~/Documents/Github_heritability_predictability_Meat_Traits/")
+library(tidyverse)
+library(Matrix)
+library(caret)
+library(MASS)
+library(ggplot2)
+library(gridExtra)
+library(dplyr)
+library(kableExtra)
+# load matrix
+load("Gibs_mat.Rdata")
+load("Gibd_mat.Rdata")
+load("A_mat.Rdata")
+```
+
+### 1. Summary eigenvalues
+
+```{r, include=FALSE}
+# 1.eigenvalues
+eigval<-tibble(A=eigen(A)$values, Gibs=eigen(G)$values, Gibd=eigen(Gibd)$values)
+a<-eigval%>%summarise_all(~ quantile(., na.rm = T))
+b<-eigval%>%summarise_all(~ mean(., na.rm = T))
+b<-round(rbind(b,a), 3)
+d<-c("Mean", "Min","1st Qu.","Median","3rd Qu.","Max." )
+b<-cbind(d,b)
+colnames(b)[1]<-" "
+```
+
+```{r}
+kable(b)%>%kable_styling(bootstrap_options = c("striped", "hover","condensed"))%>%
+  add_header_above(c(" ","Eigenvalues" = 3))%>%column_spec(1,bold = T)
+```
+
+```{r, include=FALSE}
+# plots
+p1<-eigval%>%ggplot(aes(x=seq_along(A),y=A))+geom_point()+theme_bw()+
+  labs(title = "Eigenvalues A",x="Index", y="Eigenvalues" )+
+  theme(text = element_text(size = 16))    
+
+p2<-eigval%>%ggplot(aes(x=seq_along(Gibs),y=Gibs))+geom_point()+theme_bw()+
+  labs(title = "Eigenvalues Gibs",x="Index", y="Eigenvalues" )+
+  theme(text = element_text(size = 16))  
+
+p3<-eigval%>%ggplot(aes(x=seq_along(Gibd),y=Gibd))+geom_point()+theme_bw()+
+  labs(title = "Eigenvalues Gibd",x="Index", y="Eigenvalues" )+
+  theme(text = element_text(size = 16))
+```
+
+```{r,eval=TRUE,echo=FALSE,fig.dim = c(10, 10), warning=FALSE,message=FALSE}
+grid.arrange(p1,p2,p3, nrow=2)
+```
+
+## 2. Check diagonals and off-diagonals elements
+```{r, include=FALSE}
+# diag
+d<-tibble(A=diag(A),Gibs=diag(G),Gibd=diag(Gibd))
+a<-d%>%summarise_all(~quantile(.,na.rm = T))
+b<-d%>%summarise_all(~mean(.,na.rm=T))
+b<-round(rbind(b,a), 3)
+d<-c("Mean", "Min","1st Qu.","Median","3rd Qu.","Max." )
+b<-cbind(d,b)
+colnames(b)<-NULL
+# off-diag
+o<-tibble(A=A[upper.tri(A)],Gibs=G[upper.tri(G)],Gibd=Gibd[upper.tri(Gibd)])
+a1<-o%>%summarise_all(~quantile(.,na.rm = T))
+b1<-o%>%summarise_all(~mean(.,na.rm=T))
+b1<-as.data.frame(round(rbind(b1,a1), 3))
+colnames(b1)<-NULL
+p<-cbind(b,b1)
+colnames(p)<-c(" ", "A", "Gibs", "Gibd", "A", "Gibs", "Gibd")
+```
+
+```{r, message=FALSE}
+kable(p)%>%kable_styling(bootstrap_options = c("striped", "hover","condensed"))%>%
+  add_header_above(c(" ","Diagonals" = 3, "Off-diagonals"= 3))%>%column_spec(1,bold = T)
+```
+
+### 3. Linear regression of one vs the other
+```{r, include=FALSE}
+
+# linear regression of one vs the other
+reg1<-lm(Gibd ~ A, data = o)
+reg2<-lm(Gibs ~ A, data = o)
+reg3<- lm(Gibs  ~ Gibd, data = o)
+a<-matrix(nrow = 3,ncol = 3)
+colnames(a)<-rownames(a)<-c("A", "Gibd", "Gibs")
+# variance
+diag(a)<-c(var(o$A),var(o$Gibd),var(o$Gibs))
+# regression coefficient
+a[upper.tri(a)]<-c(reg1$coefficients[2],reg2$coefficients[2],reg3$coefficients[2])
+# correlation
+a[lower.tri(a)]<-c(cor(o$A,o$Gibd),cor(o$A,o$Gibs),cor(o$Gibd,o$Gibs))
+a<-round(a,4)
+```
+
+Regression coefficients $\mathbf{\beta}$ are from the column $j$ on row $i$
+
+```{r}
+kable(a,caption = "Regression coefficients (above the diagonal), variances (on diagonal), correlations (bellow the diagonal) of the off-diagonal elements of the different relationship matrices") %>%kable_styling(bootstrap_options = c("striped", "hover","condensed"))%>%column_spec(1, bold = T)
+```  
+    
+  
+```{r,include=FALSE, warning=FALSE, message=FALSE}
+library(ggpmisc)
+my.formula<-y~x
+p1<-o%>%ggplot(aes(x=A,y=Gibs))+geom_point()+geom_smooth(method = "lm")+
+  theme_bw()+ stat_poly_eq(aes(label = paste(..eq.label.., sep = "~~~")), 
+               label.x.npc = "right", label.y.npc = 0.15,
+               eq.with.lhs = "italic(hat(y))~`=`~",
+               eq.x.rhs = "~italic(x)",
+               formula = my.formula, parse = TRUE, size = 5) +
+  stat_poly_eq(aes(label = paste(..rr.label.., sep = "~~~")), 
+               label.x.npc = "right", label.y.npc = "bottom",
+               formula = my.formula, parse = TRUE, size = 5) +
+  labs(title = expression("off-diagonals elements"~bold(G[ibs]) ~"vs"~ bold(A[22])),x=expression(bold(A)), y=expression(bold(G[ibs])) )+
+  theme(text = element_text(size = 16))    
+
+p2<-o%>%ggplot(aes(x=A,y=Gibd))+geom_point()+geom_smooth(method = "lm")+
+  theme_bw()+ stat_poly_eq(aes(label = paste(..eq.label.., sep = "~~~")), 
+               label.x.npc = "right", label.y.npc = 0.15,
+               eq.with.lhs = "italic(hat(y))~`=`~",
+               eq.x.rhs = "~italic(x)",
+               formula = my.formula, parse = TRUE, size = 5) +
+  stat_poly_eq(aes(label = paste(..rr.label.., sep = "~~~")), 
+               label.x.npc = "right", label.y.npc = "bottom",
+               formula = my.formula, parse = TRUE, size = 5) +
+  labs(title = expression("off-diagonals elements"~bold(G[ibd]) ~"vs"~ bold(A[22])),x=expression(bold(A[22])), y=expression(bold(G[ibd])) )+
+  theme(text = element_text(size = 16)) 
+
+p3<-o%>%ggplot(aes(x=Gibd,y=Gibs))+geom_point()+geom_smooth(method = "lm")+
+  theme_bw()+ stat_poly_eq(aes(label = paste(..eq.label.., sep = "~~~")), 
+               label.x.npc = "right", label.y.npc = 0.15,
+               eq.with.lhs = "italic(hat(y))~`=`~",
+               eq.x.rhs = "~italic(x)",
+               formula = my.formula, parse = TRUE, size = 5) +
+  stat_poly_eq(aes(label = paste(..rr.label.., sep = "~~~")), 
+               label.x.npc = "right", label.y.npc = "bottom",
+               formula = my.formula, parse = TRUE, size = 5) +
+  labs(title = expression("off-diagonals elements"~bold(G[ibs]) ~"vs"~ bold(G[ibd])),x=expression(bold(G[ibd])), y=expression(bold(G[ibs])) )+
+  theme(text = element_text(size = 16)) 
+```
+
+```{r,fig.dim = c(10, 10),warning=FALSE, message=FALSE}
+
+grid.arrange(p1,p2,p3, nrow=2)
+
+```

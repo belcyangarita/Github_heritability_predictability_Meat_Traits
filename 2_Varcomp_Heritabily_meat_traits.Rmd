@@ -1,0 +1,132 @@
+---
+title: "Heritability estimated in meat quality traits"
+author: "Belcy Angarita"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+rm(list = ls())
+setwd("~/Documents/Github_heritability_predictability_Meat_Traits/")
+library(readxl)
+library(tidyverse)
+library(stringi)
+library(dplyr)
+library(car)
+library(regress)
+library(gwaR)
+library(kableExtra)
+
+# 1. load files
+# 1.1. Dataframe with phenotypes and fixed effects
+load("msuprphenofile.Rdata")
+# 1.2. Relationship matrices
+load("Gibs_mat.Rdata")
+load("A_mat.Rdata")
+load("Gibd_mat.Rdata")
+
+```
+
+
+It were selected 20 meat quality and carcass traits recorded in 960 individuals, which were
+genotyping for 42087 SNP. For the statistical analysis was fitted a linear mixed model, which included fixed effects of $sex$, $slaughter\ group$ and $carcass\ weight$. 
+
+$\mathbf{Y= X \beta + Zu +e}$
+
+Three different relationship matrices were calculated to estimate the variance components and heritability $\hat{h}^2$. The first relationship matrix was based in the pedigree $\mathbf{A}$, the second method used the markers to compute the genomic relationship matrix $\mathbf{G_{ibs}}$ computed as $VanRaden\ (2008)$ method and the third method the genomic matrix was computed as $Han\ and\ Abney\ (2011)$ method using both pedigree and markers information, $\mathbf{G_{ibd}}$.
+
+### 1. Description of the mix model for each meat quality trait
+
+```{r}
+
+# 2. Gblup analysis  meat traits
+cont_struc2<-rbind(
+  c("last_lum.1",y~sex + car_wt + slgdt_cd),c("dress_ptg.1",y~ + car_wt + slgdt_cd),
+  c("car_length.1",y~sex + car_wt + slgdt_cd),c("belly.1",y~sex + car_wt + slgdt_cd),
+  c("juiciness.1",y~sex + car_wt + slgdt_cd),c("WBS.1",y~sex + car_wt + slgdt_cd),
+  c("ph_24h.1",y~sex + car_wt + slgdt_cd),c("driploss.1",y~sex + car_wt + slgdt_cd),
+  c("protein.1",y~sex + car_wt + slgdt_cd),c("cook_yield.1",y~sex + car_wt + slgdt_cd),
+  c("bf10_22wk.1",y~sex + car_wt + slgdt_cd),c("lma_22wk.1",y~ sex + car_wt + slgdt_cd), 
+  c("ham.1",y ~ sex + car_wt + slgdt_cd),c("loin.1",y ~ sex + car_wt + slgdt_cd),
+  c("fat.1",y~ sex + car_wt + slgdt_cd),c("moisture.1",y ~ sex + car_wt + slgdt_cd), 
+  c( "tenderness.1", ~ sex + car_wt + slgdt_cd),c("boston.1", ~ sex + car_wt + slgdt_cd),
+  c( "spareribs.1", ~ sex + car_wt + slgdt_cd),c("picnic.1", ~ sex + car_wt + slgdt_cd)
+)
+```
+
+# 2. Estimated variance components in meat quality and carcass traits with A matrix
+```{r}
+A<-A[rownames(G),rownames(G)]
+
+gbAmat.meatraits<-list()
+for (i in 1:nrow(cont_struc2)) {
+  gbAmat.meatraits[[i]]<-gblup(cont_struc2[i,][[1]],pheno.msuprp,
+                           c(cont_struc2[i,][[2]]),
+                            G = A ,pos=c(T,T))
+  names(gbAmat.meatraits)[i]<-cont_struc2[i]
+}
+#save(gbAmat.meatraits, file = "gbAmat_MsuPRPmeat.Rdata")
+lapply(gbAmat.meatraits, function(x)varcomp(x))
+
+```
+
+# 3. Estimated variance components in meat quality and carcass traits with Gibs matrix
+```{r}
+
+gb.meatraits<-list()
+for (i in 1:nrow(cont_struc2)) {
+  gb.meatraits[[i]]<-gblup(cont_struc2[i,][[1]],pheno.msuprp,
+                        c(cont_struc2[i,][[2]]),
+                        G,pos=c(T,T))
+  names(gb.meatraits)[i]<-cont_struc2[i]
+}
+#save(gb.meatraits, file = "gbMeatratisMsuPRP.Rdata")
+lapply(gb.meatraits, function(x)varcomp(x))
+n<-lapply(gb.meatraits, function(x)length(x$model$y))%>%map_df(as_tibble)
+colnames(n)<-"n"
+```
+
+# 4. Estimated variance components in meat quality and carcass traits with Gidb matrix
+
+```{r}
+
+Gibd<-Gibd[rownames(G),rownames(G)]
+
+gbGibdmat.meatraits<-list()
+for (i in 1:nrow(cont_struc2)) {
+  gbGibdmat.meatraits[[i]]<-gblup(cont_struc2[i,][[1]],pheno.msuprp,
+                           c(cont_struc2[i,][[2]]),
+                            G = Gibd ,pos=c(T,T))
+  names(gbGibdmat.meatraits)[i]<-cont_struc2[i]
+}
+#save(gbGibdmat.meatraits, file = "gbGibd_MsuPRPmeat.Rdata")
+lapply(gbGibdmat.meatraits, function(x)varcomp(x))
+
+```
+
+### 5. Heritability estimated
+```{r}
+hG<-lapply(gb.meatraits, function(x)varcomp(x)[1,c(3,4)])%>%
+  map_df(as_tibble)%>%mutate(trait=names(gb.meatraits))%>%select(trait, prop.var, se)
+hG<-cbind(n,hG)%>%select(trait,n,prop.var,se)
+hG<-data.frame(trait=hG$trait,n=hG$n, prop.var=round(hG$prop.var,4),se=round(hG$se,4))
+
+hGibd<-lapply(gbGibdmat.meatraits, function(x)varcomp(x)[1,c(3,4)])%>%
+  map_df(as_tibble)%>%mutate(trait=names(gbGibdmat.meatraits))%>%select(trait, prop.var, se)
+hGibd<-data.frame(trait=hGibd$trait,prop.var=round(hGibd$prop.var,4),se=round(hGibd$se,4))
+
+hA<-lapply(gbAmat.meatraits, function(x)varcomp(x)[1,c(3,4)])%>%map_df(as_tibble)%>%
+  mutate(trait=names(gbAmat.meatraits))%>%select(trait, prop.var, se)
+hA<-data.frame(trait=hA$trait, prop.var=round(hA$prop.var,4),se=round(hA$se,4))
+
+h2<-left_join(hA,hG, "trait")%>%left_join(hGibd,"trait")
+h2<-h2%>%select(trait,n,prop.var.x:se.y,prop.var,se)
+colnames(h2)<-c("Trait","n","Heritability","se", 
+              "Heritability", "se","Heritability", "se")
+
+kable(h2)%>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"),full_width = F, 
+               position = "center",font_size = 14) %>%
+  add_header_above(c(" ", " ","A matrix" = 2, "Gibs matrix" = 2, "Gibd matrix"=2), italic = T,
+                   bold = T)
+
+```
