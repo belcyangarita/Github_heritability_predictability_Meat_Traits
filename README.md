@@ -11,10 +11,10 @@
 6. [Contact](#contact)
 
 ## General information
-This repository contains codes and data needed to reproduce the results in the estimating of variance components and heritability by fitting three different mixed models on meat quality andcarcass traits. The models differ in the source of information for building their covariance matrices. In additon, the performance of the models was compared by estimating their predictive ability by means of a 5-fold cross-validation.
+This repository contains codes and data needed to reproduce the results in the estimating of variance components and heritability by fitting three different mixed models on meat quality and carcass traits. The models differ in the source of information for building their covariance matrices. In additon, the performance of the models was compared by estimating their predictive ability by means of a 5-fold cross-validation.
 
 ## Sources
-Based on the work from ```Angarita Barajas et al.```
+Based on the work from ```Angarita Barajas et al. (2021). Heritability estimates and predictive ability for pig meat quality traits using identity-by-state and identity-by-descent relationships with low pedigree depth```
 
 ## Technologies
 1. [R](https://www.r-project.org/) - version 4.0.2
@@ -74,8 +74,8 @@ The files within the above mentioned folder have the follow exentions:
 
 ### Run workflow
 
-1. To obtain the results in the same order as it are reported in ```Angarita Barajas et al.```, the code files must be execute in according to order as it appear in the folder, althought each code can be execute the individual way.  
+1. To obtain the results in the same order as it are reported in ```Angarita Barajas et al. (2021). Heritability estimates and predictive ability for pig meat quality traits using identity-by-state and identity-by-descent relationships with low pedigree depth```, the code files must be execute in according to order as it appear in the folder, althought each code can be execute the individual way.  
 
 
 ## Acknowledgements
-> This research was founded by Agencia Nacional de Promoción Científica y Tecnológica, Argentina, PICT-2018-04497 and by National Institute of Food and Agriculture Award no. 2021-67021-34150 to Juan P. Steibel. Computer resources were provided by the Michigan State University High Performance Computing Center (HPCC).
+> This research was funded by Agencia Nacional de Promoción Científica y Tecnológica, Argentina, PICT-2018-04497 and by National Institute of Food and Agriculture Award no. 2021-67021-34150 to Juan P. Steibel. Computer resources were provided by the Michigan State University High Performance Computing Center (HPCC).
