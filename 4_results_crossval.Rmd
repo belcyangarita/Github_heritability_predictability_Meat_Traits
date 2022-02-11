@@ -12,9 +12,9 @@ The statistical model fitted for each meat quality and carcass trait was:
 
 $\mathbf{Y= X \beta + Zu +e}$
 
-Using 3 different relationship matrices, the genomic relationship matrix $\mathbf{G_{ibs}}$ computed as $VanRaden\ (2008)$,the genomic relationship matrix $\mathbf{G_{ibd}}$ computed as $Han\ and\ Abney\ (2011)$ and the additive relationship matrix $\mathbf{A_{22}}$.
+Using 3 different relationship matrices, the genomic relationship matrix $\mathbf{G_{ibs}}$ computed as $VanRaden\ (2008)$ method 1,the genomic relationship matrix $\mathbf{G_{ibd}}$ computed as $Han\ and\ Abney\ (2011)$ and the additive relationship matrix $\mathbf{A_{22}}$.
 
-To calculate the $predictive\ ability$, we used the Pearson correlation coefficient among predicted and observed fenotype $\hat{r}(y,\hat{y})$ obtained by 5-fold crossvalidation.  
+To calculate the $predictive\ ability$, we used the Pearson correlation coefficient between predicted and observed phenotype $\hat{r}(y,\hat{y})$ obtained by means of 5-fold cross-validation.  
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -23,7 +23,8 @@ library(dplyr)
 library(kableExtra)
 
 rm(list=ls())
-setwd("~/Documents/Github_heritability_predictability_Meat_Traits//")
+setwd("~/../../Volumes/Drive/Github_heritability_predictability_Meat_Traits//")
+
 # Result by replicate
 ibs<-read.table("resu_corval_Gibs")
 Amat<-read.table("resu_corval_A")
@@ -39,92 +40,75 @@ ibs<-select(ibs, replicate, lc.trait, cor_y_yhat_Gvr)%>%arrange(lc.trait)
 Amat<-select(Amat, replicate, lc.trait, cor_y_yhat_A22)%>%arrange(lc.trait)
 ibd2<-select(ibd2, replicate, lc.trait, cor_y_yhat_Ghya)%>%arrange(lc.trait) 
 
-# 2. datafile correlation estimated in each iteration for each matrix,
-# and winner matrix by replicate
+# 2. Data correlation estimated
 validres<-Amat%>%left_join(ibs)%>%left_join(ibd2)
 validres<-validres%>%filter(!is.na(cor_y_yhat_Gvr),!is.na(cor_y_yhat_Ghya))
 
 rp<-validres%>%arrange(replicate)%>%count(replicate)%>%filter(n==20)
 validres<-rp%>%left_join(validres)
 validres<-validres%>%select(replicate,lc.trait:cor_y_yhat_Ghya)
+winrepli<-function(x){
+  winner<-vector()
+  loser<-vector()
+  for(i in 1:nrow(x)){
+    winner[i]<-which.max(x[i,3:5])
+    loser[i]<-which.min(x[i,3:5])
+  }
+  winerMat<-cbind(winner,loser)
+  return(winerMat)
+}
+s<-winrepli(validres)
+validres<-cbind(validres,s)
 
+for (i in 1:length(validres$winner)) {
+  if (validres$winner[i]==1) {validres$winner[i]<-"A"}
+  if (validres$winner[i]==2) {validres$winner[i]<-"Gvr"}
+  if (validres$winner[i]==3) {validres$winner[i]<-"Ghya"}
+  }
+
+for (i in 1:length(validres$loser)) {
+  if (validres$loser[i]==1) {validres$loser[i]<-"A"}
+  if (validres$loser[i]==2) {validres$loser[i]<-"Gvr"}
+  if (validres$loser[i]==3) {validres$loser[i]<-"Ghya"}
+}
 
 # 3. list by trait results of correlation y,yhat replicate
 trt<-as.vector(names(table(validres$lc.trait)))
 result.cor.traits<-list()
-
-```
-
-### 1.1. Multiple comparison procedure
-
-$Tukey$ multiple comparison was used to test the significance of differences in predictive ability estimates by each trait. The lineal model fitted was:
-
-$\hat{r}_{ij}={\tau}_i\ +\ {\epsilon}_{ij}$
-
-where: $\hat{r}(y,\hat{y})$ is the es la j-ésima correlación estimada $(j1,...,213)$, ${\tau}_i$ is the effect of relationship matrix $(i=1,2,3)$ for $\mathbf{A_{22}},\mathbf{G_{ibs}},\mathbf{G_{ibd}}$, 
- 
-```{r,include=FALSE,warning=FALSE,message=FALSE}
-
-ibs<-validres%>%
-  mutate(mat=as.factor("Gvr"), replicate=as.factor(replicate),cor_y_yhat=cor_y_yhat_Gvr)%>%
-  select(replicate, lc.trait, cor_y_yhat, mat)
-ibd2<-validres%>%
-  mutate(mat=as.factor("Gibd"), replicate=as.factor(replicate),cor_y_yhat=cor_y_yhat_Ghya)%>%
-  select(replicate, lc.trait,cor_y_yhat, mat)
-Amat<-validres%>%
-  mutate(mat=as.factor("A"), replicate=as.factor(replicate),cor_y_yhat=cor_y_yhat_A22)%>%
-  select(replicate, lc.trait, cor_y_yhat, mat)
-dat<-rbind(Amat,ibs,ibd2)%>%arrange(lc.trait)
-trt<-as.vector(names(table(validres$lc.trait)))
-result.cor.traits<-list()
 for (i in 1:length(trt)) {
-  result.cor.traits[[i]]<-filter(dat, lc.trait==trt[i])%>%select(lc.trait,replicate,cor_y_yhat,mat)
+  result.cor.traits[[i]]<-filter(validres, lc.trait==trt[i])%>%select(replicate,cor_y_yhat_A22,
+                                                          cor_y_yhat_Gvr, cor_y_yhat_Ghya,
+                                                          winner, loser)
   names(result.cor.traits)[i]<-trt[i]
 }
 
-# Get means with their standard errors and confidence intervals
-library(emmeans)
-library(lsmeans)
-# 
-modtraits<-lapply(result.cor.traits, function(x)lm(cor_y_yhat ~ -1+mat+replicate,data = x))
-m.se<-lapply(modtraits, function(x)lsmeans(x,~mat))
-library(multcomp)
-# Tukey Multiple comparison test
-r.anova<-lapply(result.cor.traits, function(x)lm(cor_y_yhat ~ -1+mat+replicate,data = x))
-t.shf<-lapply(r.anova, function(x)summary(glht(x,linfct=mcp(mat="Tukey"))))
-lt<-lapply(t.shf, function(x)cld(x,decreasing=T))
+mt<-validres%>%group_by(lc.trait)%>%
+  summarise_at(vars(cor_y_yhat_A22,cor_y_yhat_Gvr,cor_y_yhat_Ghya),funs(mean,sd))%>%ungroup()
+mt<-mt%>%
+  transmute(Trait=lc.trait,nrep=nrow(rp),
+         A=cor_y_yhat_A22_mean,A.sd=cor_y_yhat_A22_sd,
+         Gvr=cor_y_yhat_Gvr_mean,Gvr.sd=cor_y_yhat_Gvr_sd,
+         Gibd=cor_y_yhat_Ghya_mean,Gibd.sd=cor_y_yhat_Ghya_sd)
 
-m.se<-m.se%>%map_df(as_tibble)%>%arrange(mat)%>%mutate(lc.trait=rep(trt,3))
-m.se<-cbind(m.se[1:20,7],m.se[1:20,-c(4,7)],m.se[21:40,-c(4,7)],m.se[41:60,-c(4,7)])
-m<-m.se[,c(1,3:6,8:11,13:16)]
-m<-m%>%keep(is.numeric)%>%round(.,4)
-m<-cbind(m.se[,1],m)
-colnames(m)<-c("Trait",rep(c("Mean","SE","Low.CI","Up.CI"),3))
+colnames(mt)<-c("Trait", "nrep","A22","sd","Gibs","sd", "Gibd","sd")
+winner<-as.matrix(apply(mt[,c(3,5,7)],1, function(x)which.max(x)))
+colnames(winner)<-"Maximun value"
+for (i in 1:nrow(winner)) {
+  if(winner[i]==1){winner[i]<-"A"}
+  if(winner[i]==2){winner[i]<-"Gibs"}
+  if(winner[i]==3){winner[i]<-"Gibd"}
+}
+r1<-cbind(mt,winner)
 
-mat<-rep(c("A","Gvr","Gibd"),20)
-
-lt<-lapply(lt, function(x)(x$mcletters$Letters))%>%map_df(as_tibble)%>%mutate(mat=mat)
-d<-matrix(lt$value,ncol = 3,byrow = T)
-colnames(d)<-c("A","Gvr","Gibd")
-m<-cbind(m,d)
 ```
 
 ```{r}
-names(m)[14:16] <- paste0(names(m)[14:16], 
-                                footnote_marker_symbol(1))
-kable(m,escape = F)%>%
+kable(r1)%>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed"),full_width = F, 
-               position = "center") %>%column_spec(1,bold = T)%>%
-    add_header_above(c(" ","A"= 4,"Gibs"= 4, "Gibd"= 4,"significance difference"=3))%>%
-  add_header_above(c(" ", "correlation y vs yhat" = 15), italic = T,bold = T)%>%
-  column_spec(c(2,6,10,14:16),italic = T,color = "black")%>%
-  row_spec(c(3,16), background = "#CCEAAA")%>%
-  row_spec(c(1,2,4:8,11,12,15,17:20), background = "#D0E0F0")%>%footnote(symbol = "Different letters in the same row indicate a statistically significant difference between relationship matrices (p<0.05)")
+               position = "center") %>%
+  add_header_above(c(" ", " ","correlation y vs yhat" = 6," "), italic = T,bold = T)
+  
 
 ```
-
- 
-
-
-
+```
 
