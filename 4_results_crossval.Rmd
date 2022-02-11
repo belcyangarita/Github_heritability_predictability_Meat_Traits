@@ -23,7 +23,7 @@ library(dplyr)
 library(kableExtra)
 
 rm(list=ls())
-setwd("~/../../Volumes/Drive/Github_heritability_predictability_Meat_Traits//")
+setwd("~/Documents/Github_heritability_predictability_Meat_Traits//")
 
 # Result by replicate
 ibs<-read.table("resu_corval_Gibs")
