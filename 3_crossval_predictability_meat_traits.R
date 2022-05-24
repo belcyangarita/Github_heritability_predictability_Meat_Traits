@@ -1,18 +1,18 @@
 #-----------------------------------------------------------------------------#
 # Date: 12 October 2021
-# Description code: 5 fold crossvalidation to estimate the predictive ability
+# Description code: r-repeated 5-fold cross-validation to estimate the predictive ability
 #                   of animal models in meat quality and carcass traits
 # 1. Input files: 
 # 1.1. Dataframe with phenotypes and fixed effects
 # 1.2. Relationship matrix : A, Gibs, Gibd
 # 2. Ouput files:
-# 2.1. resu_varcomp_Gibs: text file with estimated variance components.
-# 2.2.resu_corval_Gibs: text file with 3 columns replicate, estimated correlation between the observed and
-#                     estimate phenotype and name trait.
+# 2.1.resu_varcomp_Gibs: text file with estimated variance components.
+# 2.2.rfold_G: text file with 4 columns: number of replicate,name of trait, number of fold, 
+#                       estimated correlation between the observed and predicted phenotype.
 # 2.3.resu_sd_G: text file with number of iteration
 #
 # ****Observations***
-# 1. This code was writed to run 300 times in a High Performance Computing (HPC) 
+# 1. This code was write to run 300 times in a High Performance Computing (HPC) 
 #   and the next additional arguments in the bash file are need:
 #     for rep in {1..300}
 #     do
@@ -20,18 +20,19 @@
 #     Rscript 2_crossval_predictability_meat_traits.R $rep $sd
 #     done
 #
-# 2. The code execute only one relationship matrix, therefore it is necesary
+# 2. The code execute only one relationship matrix, therefore it is necessary
 #    change the matrix if do you want to run the validation for the other matrices
 #
 # 3. It may be that some replicates the estimation of variance components does not achieve 
 #    the convergence criteria with some matrix, then the replicate will not appear in the output file
 #
-# 4. Running the code to 1 replicate per trait, the elapsed time is 13.647 s in a personal computer
+# 4. Running the code to 1 replicate per trait, the elapsed time is 13.647 seconds in a personal computer
 #-----------------------------------------------------------------------------#
 
 
 rm(list=ls())
 setwd("~/Documents/Github_heritability_predictability_Meat_Traits/")
+
 # Arguments take from bash file
 #args <- commandArgs(TRUE)
 #rep <-as.integer(args[1]) # number of replicates (default = 300)
@@ -100,7 +101,7 @@ lsdata<- pheno.msuprp
 
 l<- vector("list", nrow(cont_struc))    #list[[trait]] with y_hats per trait after validation
 mask<- vector("list", nrow(cont_struc)) #list[[trait]] of 10 elements with masked ids per fold per trait
-
+corfold<-vector("list", nrow(cont_struc)) #list[[trit]] with y_hats per fold
 for (i in 1:nrow(cont_struc)) {
   result[[i]]$name<-cont_struc[i,][[1]]
   # For each trait, extract those ids with genotypes + records (full)
@@ -138,7 +139,7 @@ for (i in 1:nrow(cont_struc)) {
 rm(cont_struc2, cols, na.stat, full, clss, size, split, nz, ct)
 
 
-# 3.3. Run the Validaton for each trait --------------------------------
+# 3.3. Run the Validation for each trait --------------------------------
 
 for (i in 1:nrow(cont_struc)) {
   lsdata<- pheno.msuprp
@@ -166,6 +167,13 @@ for (i in 1:nrow(cont_struc)) {
     # Get vector of solutions fixed effects and random effect #************
     sol_xb = mX[test,]%*%bhat
     sol_u = G[test,rownames(gb$model$G)] %*%solve(gb$model$G)%*%summary(gb)$uhat
+    
+    # Correlation by fold 
+    yf<-pheno.msuprp%>%filter(id%in%test)%>%select(cont_struc[i,][[1]])
+    yf<-yf%>%mutate(solfold=sol_xb + sol_u)
+    corfold[[i]][[j]]<-cor(yf[1],yf[2])
+    names(corfold)[i]<-cont_struc[i,][[1]]
+    
     l[[i]][test,'yhat']= sol_xb + sol_u
   }
   result[[i]]$corr=cor(l[[i]]$y,l[[i]]$yhat)
@@ -180,9 +188,14 @@ for (i in 1:nrow(cont_struc)) {
   if (rep==1) {
     write.table(cbind(result[[i]]$varcomp, name), file="resu_varcomp_Gibs", append = TRUE, quote=FALSE)
   }
-  
-   write.table(cbind(rep, result[[i]]$corr, result[[i]]$name), file="resu_corval_Gibs", 
-               row.names=FALSE, col.names=FALSE, append=TRUE, quote=FALSE)
+  # result by replicate
+   #write.table(cbind(rep, result[[i]]$corr, result[[i]]$name), file="resu_corval_Gibs", 
+    #           row.names=FALSE, col.names=FALSE, append=TRUE, quote=FALSE)
+   
+   # result by fold
+   write.table(cbind(rep,names(corfold[i]),seq(corfold[[i]]),corfold[[i]]), file="rfold_G", row.names=FALSE, col.names=FALSE, append=TRUE, quote=FALSE)
+   
    }
+write.table(sd, file="resu_sd_G", row.names=FALSE, col.names=FALSE, append=TRUE, quote=FALSE)
 
 
