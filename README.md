@@ -1,4 +1,4 @@
-# Variance components and Heritability of meat quality traits in pigs 
+# Variance components,heritability and predictive ability of meat quality traits in pigs 
 
 > To compare three specifications of the covariance structure of an experimental pig population to estimate additive variances, heritabilities and predictive abilities for 20 meat quality an carcass traits. 
 
@@ -11,10 +11,10 @@
 6. [Contact](#contact)
 
 ## General information
-This repository contains codes and data needed to reproduce the results in the estimating of variance components and heritability by fitting three different mixed models on meat quality and carcass traits. The models differ in the source of information for building their covariance matrices. In additon, the performance of the models was compared by estimating their predictive ability by means of a 5-fold cross-validation.
+This repository contains codes and data needed to reproduce the results in the estimating of variance components and heritability by fitting three different mixed models on meat quality and carcass traits. The models differ in the source of information for building their covariance matrices. In addition, the performance of the models was compared by estimating their predictive ability by means of a r-replicated k-fold cross-validation (r=213,k=5).
 
 ## Sources
-Based on the work from ```Angarita Barajas et al. (2021). Heritability estimates and predictive ability for pig meat quality traits using identity-by-state and identity-by-descent relationships with low pedigree depth```
+Based on the work from ```Angarita Barajas et al. (2022). Heritability estimates and predictive ability for pig meat quality traits using identity-by-state and identity-by-descent relationships in an F2 population```
 
 ## Technologies
 1. [R](https://www.r-project.org/) - version 4.0.2
@@ -30,6 +30,8 @@ Based on the work from ```Angarita Barajas et al. (2021). Heritability estimates
 * ggplot2 - version 3.3.2
 * gridExtra - version 2.3
 * kableExtra - version 1.1.0
+* boot - version 1.3-2.8
+* AccuracyComparer - version 0.0.0.9000
 
 
 
@@ -37,13 +39,13 @@ Based on the work from ```Angarita Barajas et al. (2021). Heritability estimates
 The **global workflow** to reproduce the results is:
 
 1. Comparison of relationship matrices. 
-2. Estimation of variance compontents and heritability of each meat quality and carcass trait.
-3. Estimation of predictive ability of the models by means 5-fold cross-validation.
-4. Tukey's multiple compariso to test the significance differences between the predictive abilities of the models. 
+2. Estimation of variance components and heritability of each meat quality and carcass trait.
+3. Estimation of predictive ability of the models by means r-replicated 5-fold cross-validation.
+4. Compare predictive abilities between models by preforming paired comparisons as in Schrauf et al. (2021)
 
 
 ### Features
-The repository [Github_heritability_predictability_Meat_Traits](https://github.com/belcyangarita/Github_heritability_predictability_Meat_Traits) contains the principal data file and codes necesaries, which are named with numeric order (1,2, etc) to refer to the execution order of each one.
+The repository [Github_heritability_predictability_Meat_Traits](https://github.com/belcyangarita/Github_heritability_predictability_Meat_Traits) contains the principal data file and codes necessaries, which are named with numeric order (1,2, etc) to refer to the execution order of each one.
 
 ### Data file:
 
@@ -65,17 +67,17 @@ The repository [Github_heritability_predictability_Meat_Traits](https://github.c
 
 The files within the above mentioned folder have the follow exentions:
 * *.Rmd*: R Markdown code to generate the report with the results in html format
-* *.R*: R code workflow, used to estimate the predictive ability and generate the outputs objects (*resu_corval_x*) 
+* *.R*: R code workflow, used to estimate the predictive ability and generate the outputs objects (*rfold_x*) 
 
 #### Output files
 
-* *resu_corval_x*: 3 text files one for each relationship matrix, each one have three columns: replicate, predictive ability and name of trait
+* *rfold_x*: 3 text files one for each relationship matrix, each one have 4 columns: number of replicate,name of trait, number of fold,estimated correlation between the observed and predicted phenotype
 
 
 ### Run workflow
 
-1. To obtain the results in the same order as it are reported in ```Angarita Barajas et al. (2021). Heritability estimates and predictive ability for pig meat quality traits using identity-by-state and identity-by-descent relationships with low pedigree depth```, the code files must be execute in according to order as it appear in the folder, althought each code can be execute the individual way.  
+1. To obtain the results in the same order as it are reported in ```Angarita Barajas et al.. (2022). Heritability estimates and predictive ability for pig meat quality traits using identity-by-state and identity-by-descent relationships in an F2 population```, the code files must be execute in according to order as it appear in the folder, although each code can be execute the individual way.  
 
 
 ## Acknowledgements
-> This research was funded by Agencia Nacional de Promoción Científica y Tecnológica, Argentina, PICT-2018-04497 and by National Institute of Food and Agriculture Award no. 2021-67021-34150 to Juan P. Steibel. Computer resources were provided by the Michigan State University High Performance Computing Center (HPCC).
+> This research was founded by Agencia Nacional de Promoción Científica y Tecnológica, Argentina, PICT-2018-04497 and by National Institute of Food and Agriculture Award no. 2021-67021-34150 to Juan P. Steibel. Computer resources were provided by the Michigan State University High Performance Computing Center (HPCC). We would like to thank Matias F. Schrauf (FAUBA, Argentina) for valuable discussions about cross-validation procedures for model comparison.
