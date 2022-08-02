@@ -58,7 +58,7 @@ The repository [Github_heritability_predictability_Meat_Traits](https://github.c
 * [Gibd_mat.Rdata](https://github.com/belcyangarita/Github_heritability_predictability_Meat_Traits)
 * [Gibs_mat.Rdata](https://github.com/belcyangarita/Github_heritability_predictability_Meat_Traits)
 3. Predictive ability estimates with each model for all traits 
-* [accuracy_meatdata.Rdata]https://github.com/belcyangarita/Github_heritability_predictability_Meat_Traits)
+* [accuracy_meatdata.Rdata](https://github.com/belcyangarita/Github_heritability_predictability_Meat_Traits)
 
 #### R Code files
 
