@@ -83,4 +83,4 @@ The files within the above mentioned folder have the follow exentions:
 
 
 ## Acknowledgements
-> This research was founded by Agencia Nacional de Promoción Científica y Tecnológica, Argentina, PICT-2018-04497 and by National Institute of Food and Agriculture Award no. 2021-67021-34150 to Juan P. Steibel. Computer resources were provided by the Michigan State University High Performance Computing Center (HPCC). We would like to thank Matias F. Schrauf (FAUBA, Argentina) for valuable discussions about cross-validation procedures for model comparison.
+> This research was founded by Agencia Nacional de Promoción Científica y Tecnológica, Argentina, PICT-2018-04497 and by National Institute of Food and Agriculture Award no. 2021-67021-34150 to Juan P. Steibel. Computer resources were provided by the Michigan State University High Performance Computing Center (HPCC).
